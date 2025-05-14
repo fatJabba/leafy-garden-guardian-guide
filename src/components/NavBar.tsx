@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Plant, Plus, Menu } from "lucide-react";
+import { Sprout, Plus, Menu } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const NavBar = () => {
@@ -9,7 +9,7 @@ const NavBar = () => {
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-2">
           <Link to="/" className="flex items-center gap-2">
-            <Plant className="h-6 w-6 text-garden-500" />
+            <Sprout className="h-6 w-6 text-garden-500" />
             <span className="text-xl font-semibold">PlantPal</span>
           </Link>
         </div>

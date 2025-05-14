@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { SeedlingIcon } from "lucide-react";
+import { Leaf } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface EmptyStateProps {
@@ -16,7 +16,7 @@ const EmptyState = ({
   description,
   actionLabel,
   actionLink,
-  icon = <SeedlingIcon className="h-12 w-12 text-garden-500 mb-4" />,
+  icon = <Leaf className="h-12 w-12 text-garden-500 mb-4" />,
 }: EmptyStateProps) => {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
