@@ -1,11 +1,12 @@
 
 import React, { useRef, useState, useCallback, useEffect } from "react";
-import { Camera, Image, AlertCircle } from "lucide-react";
+import { Camera, Image, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+import { uploadImageToSupabase } from "@/utils/supabaseStorage";
 
 interface PlantCameraProps {
-  onCapture: (imageData: string) => void;
+  onCapture: (imageData: string, imagePath?: string | null) => void;
 }
 
 const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
@@ -15,6 +16,7 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [permissionError, setPermissionError] = useState(false);
   const [isAttemptingToStart, setIsAttemptingToStart] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const streamRef = useRef<MediaStream | null>(null);
 
   const startCamera = async () => {
@@ -107,7 +109,7 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
     setIsCameraOn(false);
   };
 
-  const captureImage = useCallback(() => {
+  const captureImage = useCallback(async () => {
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
@@ -120,8 +122,31 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
         
         const imageData = canvas.toDataURL("image/jpeg");
         setCapturedImage(imageData);
-        onCapture(imageData);
-        stopCamera();
+        
+        setIsUploading(true);
+        // Upload the image to Supabase
+        try {
+          const imagePath = await uploadImageToSupabase(imageData);
+          onCapture(imageData, imagePath);
+          if (imagePath) {
+            toast({
+              title: "Image uploaded",
+              description: "Your plant image has been saved to the cloud.",
+            });
+          }
+        } catch (error) {
+          console.error("Error uploading image:", error);
+          toast({
+            title: "Upload failed",
+            description: "We couldn't upload your image. The local version will still be used.",
+            variant: "destructive"
+          });
+          // Still pass the local image even if upload failed
+          onCapture(imageData, null);
+        } finally {
+          setIsUploading(false);
+          stopCamera();
+        }
       }
     }
   }, [onCapture]);
@@ -131,14 +156,36 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
     startCamera();
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = () => {
+      reader.onload = async () => {
         const imageData = reader.result as string;
         setCapturedImage(imageData);
-        onCapture(imageData);
+        
+        setIsUploading(true);
+        try {
+          const imagePath = await uploadImageToSupabase(imageData);
+          onCapture(imageData, imagePath);
+          if (imagePath) {
+            toast({
+              title: "Image uploaded",
+              description: "Your plant image has been saved to the cloud.",
+            });
+          }
+        } catch (error) {
+          console.error("Error uploading image:", error);
+          toast({
+            title: "Upload failed",
+            description: "We couldn't upload your image. The local version will still be used.",
+            variant: "destructive"
+          });
+          // Still pass the local image even if upload failed
+          onCapture(imageData, null);
+        } finally {
+          setIsUploading(false);
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -163,13 +210,15 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
                     accept="image/*"
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     onChange={handleImageUpload}
+                    disabled={isUploading}
                   />
                   <Button 
                     type="button"
                     variant="outline"
                     className="w-full"
+                    disabled={isUploading}
                   >
-                    Upload image
+                    {isUploading ? "Uploading..." : "Upload image"}
                   </Button>
                 </div>
               </div>
@@ -203,6 +252,7 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
                 type="button"
                 onClick={captureImage}
                 className="rounded-full w-14 h-14 bg-white border-4 border-garden-500 p-0"
+                disabled={isUploading}
               >
                 <span className="sr-only">Take Photo</span>
               </Button>
@@ -224,10 +274,19 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
                 variant="outline"
                 size="sm"
                 className="bg-white"
+                disabled={isUploading}
               >
                 Retake
               </Button>
             </div>
+            {isUploading && (
+              <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                <div className="bg-white p-4 rounded-lg shadow-lg flex items-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin text-garden-500" />
+                  <span>Uploading image...</span>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>

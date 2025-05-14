@@ -14,6 +14,7 @@ export type Database = {
           care_instructions: Json | null
           created_at: string
           id: string
+          image_path: string | null
           image_url: string | null
           name: string
           scientific_name: string | null
@@ -25,6 +26,7 @@ export type Database = {
           care_instructions?: Json | null
           created_at?: string
           id?: string
+          image_path?: string | null
           image_url?: string | null
           name: string
           scientific_name?: string | null
@@ -36,6 +38,7 @@ export type Database = {
           care_instructions?: Json | null
           created_at?: string
           id?: string
+          image_path?: string | null
           image_url?: string | null
           name?: string
           scientific_name?: string | null
