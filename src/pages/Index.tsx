@@ -2,11 +2,14 @@
 import NavBar from "@/components/NavBar";
 import PlantCard from "@/components/PlantCard";
 import EmptyState from "@/components/EmptyState";
-import { plants } from "@/lib/plant-data";
+import { getActivePlants, getCompostedPlants } from "@/lib/plant-data";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index = () => {
-  const hasPlants = plants.length > 0;
+  const activePlants = getActivePlants();
+  const compostedPlants = getCompostedPlants();
+  const hasActivePlants = activePlants.length > 0;
+  const hasCompostedPlants = compostedPlants.length > 0;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -21,11 +24,12 @@ const Index = () => {
             <TabsTrigger value="all">All Plants</TabsTrigger>
             <TabsTrigger value="indoor">Indoor</TabsTrigger>
             <TabsTrigger value="outdoor">Outdoor</TabsTrigger>
+            <TabsTrigger value="compost">Compost</TabsTrigger>
           </TabsList>
           <TabsContent value="all" className="mt-6">
-            {hasPlants ? (
+            {hasActivePlants ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {plants.map((plant) => (
+                {activePlants.map((plant) => (
                   <PlantCard
                     key={plant.id}
                     id={plant.id}
@@ -63,6 +67,33 @@ const Index = () => {
               actionLabel="Add Outdoor Plant"
               actionLink="/add-plant"
             />
+          </TabsContent>
+          <TabsContent value="compost" className="mt-6">
+            {hasCompostedPlants ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {compostedPlants.map((plant) => (
+                  <PlantCard
+                    key={plant.id}
+                    id={plant.id}
+                    name={plant.name}
+                    species={plant.species}
+                    imageUrl={plant.imageUrl}
+                    lastWatered={plant.lastWatered}
+                    wateringFrequency={plant.wateringFrequency}
+                    sunlight={plant.sunlight}
+                    temperature={plant.temperature}
+                    composted
+                  />
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                title="No composted plants"
+                description="Plants you delete will appear here."
+                actionLabel="Back to Garden"
+                actionLink="/"
+              />
+            )}
           </TabsContent>
         </Tabs>
         

@@ -16,6 +16,8 @@ export interface Plant {
   lastWatered?: string;
   dateAdded: string;
   careInstructions: string[];
+  composted: boolean; // New field to track composted plants
+  dateComposted?: string; // Date when the plant was composted
 }
 
 // Sample plant data
@@ -32,6 +34,7 @@ export const plants: Plant[] = [
     temperature: "average",
     lastWatered: "2025-05-10",
     dateAdded: "2025-04-01",
+    composted: false,
     careInstructions: [
       "Keep in bright, indirect light",
       "Water when the top 2-3 inches of soil feel dry",
@@ -52,6 +55,7 @@ export const plants: Plant[] = [
     temperature: "average",
     lastWatered: "2025-05-05",
     dateAdded: "2025-03-15",
+    composted: false,
     careInstructions: [
       "Tolerates low light but grows best in medium to bright indirect light",
       "Let soil dry completely between waterings",
@@ -72,6 +76,8 @@ export const plants: Plant[] = [
     temperature: "warm",
     lastWatered: "2025-05-12",
     dateAdded: "2025-02-20",
+    composted: true,
+    dateComposted: "2025-05-01",
     careInstructions: [
       "Place in bright, indirect sunlight",
       "Water thoroughly but allow top inch of soil to dry out between waterings",
@@ -86,4 +92,23 @@ export const plants: Plant[] = [
 // Get a single plant by ID
 export const getPlantById = (id: string): Plant | undefined => {
   return plants.find((plant) => plant.id === id);
+};
+
+// Compost a plant (mark as composted)
+export const compostPlant = (id: string): void => {
+  const plantIndex = plants.findIndex((plant) => plant.id === id);
+  if (plantIndex !== -1) {
+    plants[plantIndex].composted = true;
+    plants[plantIndex].dateComposted = new Date().toISOString().split('T')[0];
+  }
+};
+
+// Get active (not composted) plants
+export const getActivePlants = (): Plant[] => {
+  return plants.filter((plant) => !plant.composted);
+};
+
+// Get composted plants
+export const getCompostedPlants = (): Plant[] => {
+  return plants.filter((plant) => plant.composted);
 };

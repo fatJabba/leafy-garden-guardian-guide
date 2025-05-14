@@ -108,18 +108,29 @@ const MOCK_PLANTS: PlantIdentificationResult[] = [
   }
 ];
 
+// This function simulates an identification attempt
+// It returns either a successful identification or asks for another image
 export async function identifyPlant(imageData: string): Promise<PlantIdentificationResult> {
-  // This is a mock implementation
-  // In a real application, you would send the image to an API
-  
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     // Simulate API delay
     setTimeout(() => {
+      // 15% chance to ask for another image
+      const needBetterImage = Math.random() < 0.15;
+      
+      if (needBetterImage) {
+        reject(new Error("Could not identify plant clearly. Please take another photo in better lighting."));
+        return;
+      }
+      
       // Randomly select a plant from our mock data
       const randomIndex = Math.floor(Math.random() * MOCK_PLANTS.length);
       const identifiedPlant = MOCK_PLANTS[randomIndex];
       
-      console.log("Plant identified:", identifiedPlant.name);
+      // Add slight randomness to the confidence score
+      const confidenceVariation = (Math.random() * 0.1) - 0.05;
+      identifiedPlant.confidence = Math.min(0.99, Math.max(0.7, identifiedPlant.confidence + confidenceVariation));
+      
+      console.log("Plant identified:", identifiedPlant.name, "with confidence:", identifiedPlant.confidence);
       resolve(identifiedPlant);
     }, 1500);
   });

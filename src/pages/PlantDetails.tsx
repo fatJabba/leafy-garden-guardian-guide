@@ -1,43 +1,69 @@
 
-import { useParams, Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { getPlantById } from "@/lib/plant-data";
-import NavBar from "@/components/NavBar";
-import { Droplet, Sun, ThermometerSun, Calendar, ArrowLeft, Pencil } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { useEffect, useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Droplets, Sun, Thermometer } from "lucide-react";
+import { getPlantById, Plant } from "@/lib/plant-data";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import NavBar from "@/components/NavBar";
+import PlantDetailActions from "@/components/plant/PlantDetailActions";
+import PlantChat from "@/components/plant/PlantChat";
+import { toast } from "@/hooks/use-toast";
 
 const PlantDetails = () => {
   const { id } = useParams<{ id: string }>();
-  const plant = getPlantById(id || "");
-  const [lastWatered, setLastWatered] = useState<string | undefined>(plant?.lastWatered);
-  const { toast } = useToast();
-  
-  if (!plant) {
+  const navigate = useNavigate();
+  const [plant, setPlant] = useState<Plant | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (id) {
+      const foundPlant = getPlantById(id);
+      if (foundPlant) {
+        setPlant(foundPlant);
+      } else {
+        toast({
+          title: "Plant not found",
+          description: "The plant you're looking for doesn't exist.",
+          variant: "destructive"
+        });
+        navigate("/");
+      }
+      setLoading(false);
+    }
+  }, [id, navigate]);
+
+  const handleCompost = () => {
+    navigate("/");
+  };
+
+  if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
         <NavBar />
         <main className="flex-1 container mx-auto py-6 px-4 md:px-6">
-          <div className="flex flex-col items-center justify-center py-12">
-            <h2 className="text-2xl font-bold mb-4">Plant not found</h2>
-            <Button asChild>
-              <Link to="/">Go Back</Link>
-            </Button>
+          <div className="flex justify-center items-center h-full">
+            <p>Loading plant details...</p>
           </div>
         </main>
       </div>
     );
   }
-  
-  const handleWaterPlant = () => {
-    const today = new Date().toISOString().split('T')[0];
-    setLastWatered(today);
-    toast({
-      title: "Plant watered!",
-      description: `You've watered ${plant.name} today.`,
-    });
-  };
+
+  if (!plant) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <NavBar />
+        <main className="flex-1 container mx-auto py-6 px-4 md:px-6">
+          <div className="flex justify-center items-center h-full">
+            <p>Plant not found</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -49,110 +75,103 @@ const PlantDetails = () => {
             Back to garden
           </Link>
           
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <h1 className="text-3xl font-bold tracking-tight">{plant.name}</h1>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" className="gap-2">
-                <Pencil className="h-4 w-4" />
-                Edit
-              </Button>
-              <Button 
-                className="bg-garden-500 hover:bg-garden-600 gap-2"
-                onClick={handleWaterPlant}
-              >
-                <Droplet className="h-4 w-4" />
-                Water Now
-              </Button>
-            </div>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1">
-            <div className="rounded-lg overflow-hidden mb-6">
-              <img
-                src={plant.imageUrl}
-                alt={plant.name}
-                className="w-full h-auto object-cover"
-              />
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">{plant.name}</h1>
+              <p className="text-muted-foreground italic">{plant.species}</p>
             </div>
             
-            <Card className="mb-6">
-              <CardContent className="p-4">
-                <h2 className="font-semibold mb-3">Plant Details</h2>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Species</p>
-                    <p className="font-medium">{plant.species}</p>
+            {plant.composted ? (
+              <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                Composted on {plant.dateComposted}
+              </Badge>
+            ) : (
+              <div className="flex gap-2 flex-wrap">
+                <PlantDetailActions plant={plant} onCompost={handleCompost} />
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-1 order-2 md:order-1">
+            <Card>
+              <CardHeader>
+                <CardTitle>Plant Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="flex flex-col items-center p-3 bg-muted rounded-md">
+                    <Droplets className="h-5 w-5 text-blue-500 mb-1" />
+                    <span className="text-xs text-muted-foreground">Water</span>
+                    <span className="font-medium capitalize">{plant.wateringFrequency}</span>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Added On</p>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-garden-500" />
-                      <p>{plant.dateAdded}</p>
-                    </div>
+                  <div className="flex flex-col items-center p-3 bg-muted rounded-md">
+                    <Sun className="h-5 w-5 text-yellow-500 mb-1" />
+                    <span className="text-xs text-muted-foreground">Light</span>
+                    <span className="font-medium capitalize">{plant.sunlight}</span>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Last Watered</p>
-                    <div className="flex items-center gap-2">
-                      <Droplet className="h-4 w-4 text-garden-500" />
-                      <p>{lastWatered || "Not watered yet"}</p>
-                    </div>
+                  <div className="flex flex-col items-center p-3 bg-muted rounded-md">
+                    <Thermometer className="h-5 w-5 text-red-500 mb-1" />
+                    <span className="text-xs text-muted-foreground">Temp</span>
+                    <span className="font-medium capitalize">{plant.temperature}</span>
                   </div>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium mb-2">Description</h4>
+                  <p className="text-sm text-muted-foreground">{plant.description}</p>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium mb-2">Watering Instructions</h4>
+                  <p className="text-sm text-muted-foreground">{plant.wateringInstructions}</p>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium mb-2">Care Instructions</h4>
+                  <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                    {plant.careInstructions.map((instruction, i) => (
+                      <li key={i}>{instruction}</li>
+                    ))}
+                  </ul>
+                </div>
+                
+                <div className="pt-2">
+                  <p className="text-xs text-muted-foreground">
+                    Added on: {plant.dateAdded}
+                    {plant.lastWatered && ` • Last watered: ${plant.lastWatered}`}
+                  </p>
                 </div>
               </CardContent>
             </Card>
           </div>
           
-          <div className="lg:col-span-2">
-            <Card className="mb-6">
-              <CardContent className="p-6">
-                <h2 className="text-xl font-semibold mb-4">About this plant</h2>
-                <p className="mb-6">{plant.description}</p>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                  <div className="bg-blue-50 p-4 rounded-lg flex flex-col items-center justify-center text-center">
-                    <Droplet className="h-6 w-6 text-blue-500 mb-2" />
-                    <h3 className="font-medium">Water</h3>
-                    <p className="text-sm text-muted-foreground capitalize">{plant.wateringFrequency}</p>
-                  </div>
-                  <div className="bg-yellow-50 p-4 rounded-lg flex flex-col items-center justify-center text-center">
-                    <Sun className="h-6 w-6 text-yellow-500 mb-2" />
-                    <h3 className="font-medium">Light</h3>
-                    <p className="text-sm text-muted-foreground capitalize">{plant.sunlight}</p>
-                  </div>
-                  <div className="bg-green-50 p-4 rounded-lg flex flex-col items-center justify-center text-center">
-                    <ThermometerSun className="h-6 w-6 text-green-500 mb-2" />
-                    <h3 className="font-medium">Temperature</h3>
-                    <p className="text-sm text-muted-foreground capitalize">{plant.temperature}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="p-6">
-                <h2 className="text-xl font-semibold mb-4">Care Instructions</h2>
-                <div className="space-y-3">
-                  <div>
-                    <h3 className="font-medium mb-2">Watering</h3>
-                    <p>{plant.wateringInstructions}</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="font-medium mb-2">Plant Care Checklist</h3>
-                    <ul className="space-y-2">
-                      {plant.careInstructions.map((instruction, index) => (
-                        <li key={index} className="flex items-start">
-                          <span className="text-garden-500 mr-2">•</span>
-                          <span>{instruction}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="md:col-span-2 order-1 md:order-2">
+            <Tabs defaultValue="image">
+              <TabsList className="mb-4">
+                <TabsTrigger value="image">Image</TabsTrigger>
+                <TabsTrigger value="chat">Ask AI</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="image" className="mt-0">
+                <Card>
+                  <CardContent className="p-1">
+                    <div className="aspect-video rounded-md overflow-hidden bg-muted">
+                      <img 
+                        src={plant.imageUrl} 
+                        alt={plant.name} 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="chat" className="mt-0">
+                <PlantChat plant={plant} />
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </main>
