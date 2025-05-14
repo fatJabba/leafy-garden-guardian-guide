@@ -1,7 +1,8 @@
 
 import React, { useRef, useState, useCallback } from "react";
-import { Camera, Image } from "lucide-react";
+import { Camera, Image, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/hooks/use-toast";
 
 interface PlantCameraProps {
   onCapture: (imageData: string) => void;
@@ -12,18 +13,27 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [permissionError, setPermissionError] = useState(false);
 
   const startCamera = async () => {
     try {
+      setPermissionError(false);
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" }
       });
+      
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         setIsCameraOn(true);
       }
     } catch (err) {
       console.error("Error accessing camera:", err);
+      setPermissionError(true);
+      toast({
+        title: "Camera access denied",
+        description: "Please allow camera access in your browser settings to use this feature.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -60,19 +70,60 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
     startCamera();
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const imageData = reader.result as string;
+        setCapturedImage(imageData);
+        onCapture(imageData);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
     <div className="flex flex-col items-center">
       <div className="relative w-full max-w-md aspect-square bg-gray-100 rounded-lg overflow-hidden">
         {!isCameraOn && !capturedImage && (
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <Camera className="w-12 h-12 text-gray-400 mb-4" />
-            <Button 
-              type="button" 
-              onClick={startCamera}
-              className="bg-garden-500 hover:bg-garden-600"
-            >
-              Open Camera
-            </Button>
+            {permissionError ? (
+              <div className="text-center p-4">
+                <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+                <h3 className="font-medium text-lg mb-2">Camera access denied</h3>
+                <p className="text-muted-foreground mb-4">
+                  Please enable camera access in your browser settings or upload an image instead.
+                </p>
+                <div className="relative">
+                  <input
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    onChange={handleImageUpload}
+                  />
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                  >
+                    Upload image
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <Camera className="w-12 h-12 text-gray-400 mb-4" />
+                <Button 
+                  type="button" 
+                  onClick={startCamera}
+                  className="bg-garden-500 hover:bg-garden-600"
+                >
+                  Open Camera
+                </Button>
+              </>
+            )}
           </div>
         )}
         
