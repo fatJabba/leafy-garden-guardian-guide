@@ -15,41 +15,58 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [permissionError, setPermissionError] = useState(false);
   const [isAttemptingToStart, setIsAttemptingToStart] = useState(false);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const startCamera = async () => {
     try {
       setPermissionError(false);
       setIsAttemptingToStart(true);
       
+      // Stop any existing stream first to ensure clean restart
+      stopCamera();
+      
       const constraints = {
         video: { 
           facingMode: "environment",
           width: { ideal: 1280 },
           height: { ideal: 720 }
-        }
+        },
+        audio: false
       };
       
+      console.log("Requesting camera access...");
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      streamRef.current = stream;
       
       if (videoRef.current) {
+        console.log("Setting video stream...");
         videoRef.current.srcObject = stream;
+        
+        // Force play when metadata is loaded
         videoRef.current.onloadedmetadata = () => {
           if (videoRef.current) {
-            videoRef.current.play()
-              .then(() => {
-                setIsCameraOn(true);
-                setIsAttemptingToStart(false);
-              })
-              .catch((error) => {
-                console.error("Error playing video:", error);
-                setPermissionError(true);
-                setIsAttemptingToStart(false);
-                toast({
-                  title: "Camera error",
-                  description: "There was a problem starting your camera. Please try again.",
-                  variant: "destructive"
-                });
-              });
+            console.log("Video metadata loaded, attempting to play...");
+            // Using setTimeout to ensure DOM is ready
+            setTimeout(() => {
+              if (videoRef.current) {
+                videoRef.current.play()
+                  .then(() => {
+                    console.log("Camera started successfully");
+                    setIsCameraOn(true);
+                    setIsAttemptingToStart(false);
+                  })
+                  .catch((error) => {
+                    console.error("Error playing video:", error);
+                    setPermissionError(true);
+                    setIsAttemptingToStart(false);
+                    toast({
+                      title: "Camera error",
+                      description: "There was a problem starting your camera. Please try again.",
+                      variant: "destructive"
+                    });
+                  });
+              }
+            }, 100);
           }
         };
       }
@@ -68,19 +85,26 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
   // Clean up camera resources when component unmounts
   useEffect(() => {
     return () => {
-      if (isCameraOn) {
-        stopCamera();
-      }
+      stopCamera();
     };
-  }, [isCameraOn]);
+  }, []);
 
   const stopCamera = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-      tracks.forEach(track => track.stop());
-      videoRef.current.srcObject = null;
-      setIsCameraOn(false);
+    console.log("Stopping camera...");
+    if (streamRef.current) {
+      const tracks = streamRef.current.getTracks();
+      tracks.forEach(track => {
+        console.log(`Stopping track: ${track.kind}`);
+        track.stop();
+      });
+      streamRef.current = null;
     }
+    
+    if (videoRef.current && videoRef.current.srcObject) {
+      videoRef.current.srcObject = null;
+    }
+    
+    setIsCameraOn(false);
   };
 
   const captureImage = useCallback(() => {
@@ -171,6 +195,7 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
               ref={videoRef} 
               autoPlay 
               playsInline
+              muted
               className="w-full h-full object-cover"
             />
             <div className="absolute bottom-4 left-0 right-0 flex justify-center">
