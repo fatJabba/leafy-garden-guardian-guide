@@ -1,5 +1,5 @@
 
-import React, { useRef, useState, useCallback } from "react";
+import React, { useRef, useState, useCallback, useEffect } from "react";
 import { Camera, Image, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
@@ -14,21 +14,49 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [permissionError, setPermissionError] = useState(false);
+  const [isAttemptingToStart, setIsAttemptingToStart] = useState(false);
 
   const startCamera = async () => {
     try {
       setPermissionError(false);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" }
-      });
+      setIsAttemptingToStart(true);
+      
+      const constraints = {
+        video: { 
+          facingMode: "environment",
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      };
+      
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        setIsCameraOn(true);
+        videoRef.current.onloadedmetadata = () => {
+          if (videoRef.current) {
+            videoRef.current.play()
+              .then(() => {
+                setIsCameraOn(true);
+                setIsAttemptingToStart(false);
+              })
+              .catch((error) => {
+                console.error("Error playing video:", error);
+                setPermissionError(true);
+                setIsAttemptingToStart(false);
+                toast({
+                  title: "Camera error",
+                  description: "There was a problem starting your camera. Please try again.",
+                  variant: "destructive"
+                });
+              });
+          }
+        };
       }
     } catch (err) {
       console.error("Error accessing camera:", err);
       setPermissionError(true);
+      setIsAttemptingToStart(false);
       toast({
         title: "Camera access denied",
         description: "Please allow camera access in your browser settings to use this feature.",
@@ -36,6 +64,15 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
       });
     }
   };
+
+  // Clean up camera resources when component unmounts
+  useEffect(() => {
+    return () => {
+      if (isCameraOn) {
+        stopCamera();
+      }
+    };
+  }, [isCameraOn]);
 
   const stopCamera = () => {
     if (videoRef.current && videoRef.current.srcObject) {
@@ -119,8 +156,9 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
                   type="button" 
                   onClick={startCamera}
                   className="bg-garden-500 hover:bg-garden-600"
+                  disabled={isAttemptingToStart}
                 >
-                  Open Camera
+                  {isAttemptingToStart ? "Starting Camera..." : "Open Camera"}
                 </Button>
               </>
             )}
