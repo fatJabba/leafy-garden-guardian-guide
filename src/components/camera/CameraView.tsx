@@ -19,28 +19,37 @@ const CameraView: React.FC<CameraViewProps> = ({
   
   // Force video element to play when component mounts
   useEffect(() => {
+    console.log("CameraView mounted - checking video element");
+    
     const playVideo = async () => {
       if (videoRef.current && !hasAttemptedPlay.current) {
         try {
           hasAttemptedPlay.current = true;
           
           // Make sure the video element is explicitly visible
-          videoRef.current.style.visibility = 'visible';
-          videoRef.current.style.display = 'block';
-          videoRef.current.style.width = '100%';
-          videoRef.current.style.height = '100%';
+          if (videoRef.current.style) {
+            videoRef.current.style.visibility = 'visible';
+            videoRef.current.style.display = 'block';
+            videoRef.current.style.width = '100%';
+            videoRef.current.style.height = '100%';
+            
+            // Log the state of the video element
+            console.log("Video element state:", {
+              width: videoRef.current.offsetWidth,
+              height: videoRef.current.offsetHeight,
+              display: videoRef.current.style.display,
+              visibility: videoRef.current.style.visibility,
+              srcObject: videoRef.current.srcObject ? "exists" : "null"
+            });
+          }
           
-          // Log the state of the video element
-          console.log("Video element state:", {
-            width: videoRef.current.offsetWidth,
-            height: videoRef.current.offsetHeight,
-            display: videoRef.current.style.display,
-            visibility: videoRef.current.style.visibility
-          });
-          
-          // Attempt to play video
-          await videoRef.current.play();
-          console.log("Video element is now playing");
+          // Only try to play if we have a srcObject
+          if (videoRef.current.srcObject) {
+            await videoRef.current.play();
+            console.log("Video element is now playing");
+          } else {
+            console.warn("Video element has no srcObject, cannot play");
+          }
         } catch (error) {
           console.error("Failed to play video in CameraView:", error);
         }

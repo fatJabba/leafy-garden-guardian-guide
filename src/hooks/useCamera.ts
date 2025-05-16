@@ -35,6 +35,7 @@ export function useCamera({ onCapture }: UseCameraOptions = {}) {
       
       // First try with environment camera
       try {
+        console.log("Attempting to access environment camera...");
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "environment" },
           audio: false
@@ -44,9 +45,12 @@ export function useCamera({ onCapture }: UseCameraOptions = {}) {
         
         // Ensure video element exists before accessing it
         if (videoRef.current) {
+          // This is the critical step - connect the stream to the video element
           videoRef.current.srcObject = stream;
           videoRef.current.style.display = 'block';
           videoRef.current.style.visibility = 'visible';
+          
+          console.log("Connected camera stream to video element");
           
           // Wait for metadata to be loaded before playing
           videoRef.current.onloadedmetadata = async () => {
@@ -83,9 +87,12 @@ export function useCamera({ onCapture }: UseCameraOptions = {}) {
           
           // Double-check video element again
           if (videoRef.current) {
+            // Connect the stream to the video element
             videoRef.current.srcObject = stream;
             videoRef.current.style.display = 'block';
             videoRef.current.style.visibility = 'visible';
+            
+            console.log("Connected fallback camera stream to video element");
             
             // Wait for metadata to be loaded before playing
             videoRef.current.onloadedmetadata = async () => {

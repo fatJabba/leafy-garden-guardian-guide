@@ -23,7 +23,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           closeButton:
             "group-[.toast]:opacity-100 group-[.toast]:text-foreground group-[.toast]:hover:text-foreground/80"
         },
-        duration: 5000,
+        duration: 4000,  // Reduced duration
         closeButton: true,
       }}
       {...props}

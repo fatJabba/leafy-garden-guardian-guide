@@ -56,8 +56,7 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
     captureImage
   } = useCamera();
 
-  // Ensure we only try to start the camera when the user explicitly requests it
-  
+  // Don't automatically start the camera - wait for user action
   const handleStartCamera = useCallback(() => {
     console.log("Starting camera...");
     setCameraStarted(true);
@@ -139,18 +138,12 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
     }
   }, [onCapture]);
   
-  // Track when the video element is actually mounted in the DOM
+  // Clean up cameras when unmounting
   useEffect(() => {
-    if (cameraStarted && videoRef.current && !videoMountedRef.current) {
-      videoMountedRef.current = true;
-      console.log("Video element is now mounted in the DOM");
-    }
-    
-    // Clean up cameras when unmounting
     return () => {
       stopCamera();
     };
-  }, [cameraStarted, stopCamera, videoRef]);
+  }, [stopCamera]);
 
   return (
     <div className="flex flex-col items-center">
