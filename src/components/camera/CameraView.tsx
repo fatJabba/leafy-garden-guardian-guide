@@ -24,7 +24,6 @@ const CameraView: React.FC<CameraViewProps> = ({
         className="absolute inset-0 w-full h-full object-cover z-10"
         style={{ 
           display: 'block',
-          visibility: 'visible',
           minHeight: '300px',
           objectFit: 'cover',
         }}

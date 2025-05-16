@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,7 +33,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // First set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
-        console.log("Auth state changed:", event, currentSession?.user?.email || "no user");
+        console.log("Auth state changed:", event);
         
         // Use synchronous state updates to prevent potential deadlocks
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
@@ -44,13 +43,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           
           // Show success toast when user signs in, but only for actual sign-ins
           if (event === 'SIGNED_IN') {
-            // Use setTimeout to prevent any possible race conditions
-            setTimeout(() => {
-              toast({
-                title: "Signed in successfully",
-                description: "Welcome to PlantPal!"
-              });
-            }, 0);
+            toast({
+              title: "Signed in successfully",
+              description: "Welcome to PlantPal!"
+            });
           }
         } else if (event === 'SIGNED_OUT') {
           setSession(null);
@@ -75,7 +71,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Then check for existing session - make this independent from the listener
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      console.log("Got session:", currentSession ? `yes for ${currentSession.user.email}` : "no");
+      console.log("Got session:", currentSession ? "yes" : "no");
       
       if (currentSession) {
         setSession(currentSession);

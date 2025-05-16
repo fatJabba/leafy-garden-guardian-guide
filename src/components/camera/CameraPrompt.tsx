@@ -9,9 +9,8 @@ interface CameraPromptProps {
 }
 
 const CameraPrompt: React.FC<CameraPromptProps> = ({ onStart, isAttemptingToStart }) => {
-  // Use a simple click handler that doesn't involve cross-origin communication
+  // Simple direct click handler without any cross-origin communication
   const handleStartCamera = () => {
-    console.log("Requesting camera access...");
     onStart();
   };
   
