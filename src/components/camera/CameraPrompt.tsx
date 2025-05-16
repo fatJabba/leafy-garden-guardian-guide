@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -10,9 +10,18 @@ interface CameraPromptProps {
 
 const CameraPrompt: React.FC<CameraPromptProps> = ({ onStart, isAttemptingToStart }) => {
   const handleStartClick = () => {
-    console.log("Camera start button clicked");
-    onStart();
+    console.log("Camera start button clicked - triggering onStart callback");
+    // Add a small delay to ensure the component is fully rendered
+    setTimeout(() => {
+      onStart();
+    }, 100);
   };
+
+  // Log component mounting to help with debugging
+  useEffect(() => {
+    console.log("CameraPrompt component mounted");
+    return () => console.log("CameraPrompt component unmounted");
+  }, []);
 
   return (
     <>
