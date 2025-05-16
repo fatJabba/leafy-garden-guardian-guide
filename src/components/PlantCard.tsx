@@ -1,8 +1,6 @@
 
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Droplet, Sun, ThermometerSun } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
 interface PlantCardProps {
@@ -14,6 +12,7 @@ interface PlantCardProps {
   wateringFrequency: "low" | "medium" | "high";
   sunlight: "low" | "partial" | "full";
   temperature: "cool" | "average" | "warm";
+  composted?: boolean; // Added the composted prop
 }
 
 const PlantCard = ({
@@ -25,6 +24,7 @@ const PlantCard = ({
   wateringFrequency,
   sunlight,
   temperature,
+  composted = false, // Default value for composted
 }: PlantCardProps) => {
   
   const getWateringColor = () => {
@@ -55,7 +55,7 @@ const PlantCard = ({
   };
 
   return (
-    <Card className="overflow-hidden transition-all hover:shadow-md">
+    <Card className={`overflow-hidden transition-all hover:shadow-md ${composted ? 'opacity-70' : ''}`}>
       <Link to={`/plant/${id}`}>
         <div className="aspect-square overflow-hidden">
           <img 
@@ -68,6 +68,11 @@ const PlantCard = ({
           <div>
             <h3 className="font-semibold text-lg">{name}</h3>
             <p className="text-sm text-muted-foreground">{species}</p>
+            {composted && (
+              <span className="inline-block mt-1 px-2 py-1 bg-amber-100 text-amber-800 text-xs rounded-full">
+                Composted
+              </span>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-4 pt-0 pb-2">
