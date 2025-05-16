@@ -24,7 +24,7 @@ export function useCamera({ onCapture }: UseCameraOptions = {}) {
       
       const constraints = {
         video: { 
-          facingMode: { ideal: "environment" }, // More flexible constraint
+          facingMode: "environment", // Try using a simple string first
           width: { ideal: 1280 },
           height: { ideal: 720 }
         },
@@ -33,28 +33,51 @@ export function useCamera({ onCapture }: UseCameraOptions = {}) {
       
       console.log("Requesting camera access...");
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      
+      // Store the stream reference
       streamRef.current = stream;
       
       if (videoRef.current) {
         console.log("Setting video stream...");
+        
+        // Ensure the video element has proper styling
+        if (videoRef.current.style) {
+          videoRef.current.style.visibility = 'visible';
+          videoRef.current.style.display = 'block';
+        }
+        
+        // Explicitly set srcObject
         videoRef.current.srcObject = stream;
         
-        // Only set camera as on when video can actually play
-        videoRef.current.onloadedmetadata = () => {
+        // Add event listeners to detect when video starts playing
+        videoRef.current.onloadedmetadata = async () => {
           if (videoRef.current) {
             console.log("Video metadata loaded, attempting to play...");
             
-            // Force playing with a user interaction simulation
-            videoRef.current.play()
-              .then(() => {
-                console.log("Camera started successfully");
-                setIsCameraOn(true);
-                setIsAttemptingToStart(false);
-              })
-              .catch((error) => {
-                console.error("Error playing video:", error);
-                handleCameraError("Failed to start video playback", error);
-              });
+            try {
+              await videoRef.current.play();
+              console.log("Camera started successfully");
+              setIsCameraOn(true);
+              setIsAttemptingToStart(false);
+            } catch (error) {
+              console.error("Error playing video:", error);
+              handleCameraError("Failed to start video playback", error);
+              
+              // Try again with a timeout, which can help on some browsers
+              setTimeout(async () => {
+                try {
+                  if (videoRef.current) {
+                    await videoRef.current.play();
+                    console.log("Camera started on second attempt");
+                    setIsCameraOn(true);
+                    setIsAttemptingToStart(false);
+                  }
+                } catch (retryError) {
+                  console.error("Error on retry:", retryError);
+                  handleCameraError("Failed to start camera after retry", retryError);
+                }
+              }, 500);
+            }
           }
         };
         
@@ -63,6 +86,9 @@ export function useCamera({ onCapture }: UseCameraOptions = {}) {
           console.error("Video element error:", event);
           handleCameraError("Video element encountered an error");
         };
+      } else {
+        console.error("Video ref is null");
+        handleCameraError("Video reference not available");
       }
     } catch (err: any) {
       console.error("Error accessing camera:", err);

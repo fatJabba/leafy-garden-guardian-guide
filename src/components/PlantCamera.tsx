@@ -55,16 +55,26 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
     captureImage
   } = useCamera();
 
-  // Auto-start camera when user grants permission
+  // Auto-start camera when component mounts if user has already granted permission
   useEffect(() => {
-    if (cameraStarted && !isCameraOn && !isAttemptingToStart && !permissionError) {
+    // Automatically start the camera after a short delay to let the component fully mount
+    const timeoutId = setTimeout(() => {
+      handleStartCamera();
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
+  }, []);
+
+  // Auto-restart camera when needed
+  useEffect(() => {
+    if (cameraStarted && !isCameraOn && !isAttemptingToStart && !permissionError && !capturedImage) {
       console.log("Attempting to restart camera...");
       const timeoutId = setTimeout(() => {
         startCamera();
       }, 500);
       return () => clearTimeout(timeoutId);
     }
-  }, [cameraStarted, isCameraOn, isAttemptingToStart, permissionError, startCamera]);
+  }, [cameraStarted, isCameraOn, isAttemptingToStart, permissionError, startCamera, capturedImage]);
 
   const handleStartCamera = useCallback(() => {
     setCameraStarted(true);
@@ -141,7 +151,7 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
           </div>
         )}
         
-        {isCameraOn && (
+        {isCameraOn && !capturedImage && (
           <CameraView 
             videoRef={videoRef}
             onCapture={handleCaptureClick}
