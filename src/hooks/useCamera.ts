@@ -25,9 +25,10 @@ export function useCamera({ onCapture }: UseCameraOptions = {}) {
       
       console.log("Requesting camera access...");
       
-      // Make sure video element is available 
+      // Critical check: Wait for videoRef to be available
       if (!videoRef.current) {
-        console.error("Video ref is null");
+        console.error("Video element not available");
+        setIsAttemptingToStart(false);
         handleCameraError("Video element not available");
         return;
       }
@@ -40,28 +41,34 @@ export function useCamera({ onCapture }: UseCameraOptions = {}) {
         });
         
         streamRef.current = stream;
-        videoRef.current.srcObject = stream;
-        videoRef.current.style.display = 'block';
-        videoRef.current.style.visibility = 'visible';
         
-        // Wait for metadata to be loaded before playing
-        videoRef.current.onloadedmetadata = async () => {
-          try {
-            await videoRef.current?.play();
-            console.log("Camera started successfully");
-            setIsCameraOn(true);
-            setIsAttemptingToStart(false);
-          } catch (playError) {
-            console.error("Error playing video:", playError);
-            handleCameraError("Failed to start video playback", playError);
-          }
-        };
-        
-        // Add error handler for the video element
-        videoRef.current.onerror = (event) => {
-          console.error("Video element error:", event);
-          handleCameraError("Video element encountered an error");
-        };
+        // Ensure video element exists before accessing it
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.style.display = 'block';
+          videoRef.current.style.visibility = 'visible';
+          
+          // Wait for metadata to be loaded before playing
+          videoRef.current.onloadedmetadata = async () => {
+            try {
+              await videoRef.current?.play();
+              console.log("Camera started successfully");
+              setIsCameraOn(true);
+              setIsAttemptingToStart(false);
+            } catch (playError) {
+              console.error("Error playing video:", playError);
+              handleCameraError("Failed to start video playback", playError);
+            }
+          };
+          
+          // Add error handler for the video element
+          videoRef.current.onerror = (event) => {
+            console.error("Video element error:", event);
+            handleCameraError("Video element encountered an error");
+          };
+        } else {
+          throw new Error("Video element became unavailable");
+        }
         
       } catch (err) {
         // If environment camera fails, try with user camera or default
@@ -73,22 +80,30 @@ export function useCamera({ onCapture }: UseCameraOptions = {}) {
           });
           
           streamRef.current = stream;
-          videoRef.current.srcObject = stream;
-          videoRef.current.style.display = 'block';
-          videoRef.current.style.visibility = 'visible';
           
-          // Wait for metadata to be loaded before playing
-          videoRef.current.onloadedmetadata = async () => {
-            try {
-              await videoRef.current?.play();
-              console.log("Camera started successfully with fallback");
-              setIsCameraOn(true);
-              setIsAttemptingToStart(false);
-            } catch (playError) {
-              console.error("Error playing video:", playError);
-              handleCameraError("Failed to start video playback", playError);
-            }
-          };
+          // Double-check video element again
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            videoRef.current.style.display = 'block';
+            videoRef.current.style.visibility = 'visible';
+            
+            // Wait for metadata to be loaded before playing
+            videoRef.current.onloadedmetadata = async () => {
+              try {
+                if (videoRef.current) {
+                  await videoRef.current.play();
+                  console.log("Camera started successfully with fallback");
+                  setIsCameraOn(true);
+                  setIsAttemptingToStart(false);
+                }
+              } catch (playError) {
+                console.error("Error playing video:", playError);
+                handleCameraError("Failed to start video playback", playError);
+              }
+            };
+          } else {
+            throw new Error("Video element became unavailable during fallback");
+          }
         } catch (fallbackErr) {
           console.error("Error accessing any camera:", fallbackErr);
           handleCameraError("Could not access camera", fallbackErr);

@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useCamera } from "@/hooks/useCamera";
 import { uploadImageToSupabase } from "@/utils/supabaseStorage";
 import { toast } from "@/hooks/use-toast";
@@ -16,6 +16,7 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [cameraStarted, setCameraStarted] = useState(false);
+  const videoMountedRef = useRef(false);
   
   const handleImageCapture = useCallback(async (imageData: string) => {
     setCapturedImage(imageData);
@@ -55,12 +56,27 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
     captureImage
   } = useCamera();
 
-  // Don't auto-start camera - we'll let the user click a button instead
+  // Ensure we only try to start the camera when the user explicitly requests it
   
   const handleStartCamera = useCallback(() => {
+    console.log("Starting camera...");
     setCameraStarted(true);
-    startCamera();
-  }, [startCamera]);
+    
+    // Use a small delay to ensure component has fully rendered
+    setTimeout(() => {
+      if (videoRef.current) {
+        console.log("Video ref is available, starting camera");
+        startCamera();
+      } else {
+        console.error("Video ref is not available even after delay");
+        toast({
+          title: "Camera error",
+          description: "Could not initialize camera. Please try again.",
+          variant: "destructive"
+        });
+      }
+    }, 100);
+  }, [startCamera, videoRef]);
 
   const handleCaptureClick = useCallback(() => {
     const imageData = captureImage();
@@ -72,8 +88,21 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
   const retake = useCallback(() => {
     setCapturedImage(null);
     setCameraStarted(true);
-    startCamera();
-  }, [startCamera]);
+    
+    // Use a small delay to ensure component has fully rendered
+    setTimeout(() => {
+      if (videoRef.current) {
+        startCamera();
+      } else {
+        console.error("Video ref is not available for retake");
+        toast({
+          title: "Camera error",
+          description: "Could not restart camera. Please try again.",
+          variant: "destructive"
+        });
+      }
+    }, 100);
+  }, [startCamera, videoRef]);
 
   const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -109,6 +138,19 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
       reader.readAsDataURL(file);
     }
   }, [onCapture]);
+  
+  // Track when the video element is actually mounted in the DOM
+  useEffect(() => {
+    if (cameraStarted && videoRef.current && !videoMountedRef.current) {
+      videoMountedRef.current = true;
+      console.log("Video element is now mounted in the DOM");
+    }
+    
+    // Clean up cameras when unmounting
+    return () => {
+      stopCamera();
+    };
+  }, [cameraStarted, stopCamera, videoRef]);
 
   return (
     <div className="flex flex-col items-center">
