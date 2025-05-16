@@ -20,6 +20,8 @@ export function usePlantCamera(onCapture: (imageData: string, imagePath?: string
     captureImage
   } = useCamera();
 
+  const hasStartedCamera = useRef(false);
+
   const handleImageCapture = useCallback(async (imageData: string) => {
     setCapturedImage(imageData);
     setIsUploading(true);
@@ -48,30 +50,39 @@ export function usePlantCamera(onCapture: (imageData: string, imagePath?: string
   }, [onCapture]);
   
   const handleStartCamera = useCallback(async () => {
-    console.log("Starting camera from usePlantCamera hook...");
+    // Prevent multiple calls to start camera
+    if (hasStartedCamera.current || isAttemptingToStart) {
+      return;
+    }
+    
+    hasStartedCamera.current = true;
     setCameraStarted(true);
     
-    // Start camera immediately without delay
-    if (videoRef.current) {
-      console.log("Video ref is available in usePlantCamera, starting camera");
-      const success = await startCamera();
-      if (!success) {
-        console.error("Failed to start camera");
+    try {
+      // Start camera immediately without delay
+      if (videoRef.current) {
+        const success = await startCamera();
+        if (!success) {
+          toast({
+            title: "Camera error",
+            description: "Could not initialize camera. Please try again.",
+            variant: "destructive"
+          });
+        }
+      } else {
         toast({
           title: "Camera error",
           description: "Could not initialize camera. Please try again.",
           variant: "destructive"
         });
       }
-    } else {
-      console.error("Video ref is not available in usePlantCamera");
-      toast({
-        title: "Camera error",
-        description: "Could not initialize camera. Please try again.",
-        variant: "destructive"
-      });
+    } finally {
+      // Reset flag after attempt completes (success or failure)
+      setTimeout(() => {
+        hasStartedCamera.current = false;
+      }, 1000);
     }
-  }, [startCamera, videoRef]);
+  }, [startCamera, videoRef, isAttemptingToStart]);
 
   const handleCaptureClick = useCallback(() => {
     const imageData = captureImage();
@@ -87,7 +98,6 @@ export function usePlantCamera(onCapture: (imageData: string, imagePath?: string
     if (videoRef.current) {
       const success = await startCamera();
       if (!success) {
-        console.error("Failed to restart camera");
         toast({
           title: "Camera error",
           description: "Could not restart camera. Please try again.",
@@ -95,7 +105,6 @@ export function usePlantCamera(onCapture: (imageData: string, imagePath?: string
         });
       }
     } else {
-      console.error("Video ref is not available for retake");
       toast({
         title: "Camera error",
         description: "Could not restart camera. Please try again.",

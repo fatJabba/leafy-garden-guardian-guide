@@ -9,17 +9,12 @@ interface CameraPromptProps {
 }
 
 const CameraPrompt: React.FC<CameraPromptProps> = ({ onStart, isAttemptingToStart }) => {
-  // Simple direct click handler without any cross-origin communication
-  const handleStartCamera = () => {
-    onStart();
-  };
-  
   return (
     <>
       <Camera className="w-12 h-12 text-gray-400 mb-4" />
       <Button 
         type="button" 
-        onClick={handleStartCamera}
+        onClick={onStart}
         className="bg-garden-500 hover:bg-garden-600"
         disabled={isAttemptingToStart}
       >

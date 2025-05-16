@@ -24,32 +24,25 @@ export function useMediaStream() {
       // Stop any existing stream first
       stopStream();
       
-      console.log("Requesting camera access...");
-      
       // Critical check: Ensure videoElement is available
       if (!videoElement) {
-        console.error("Video element not available");
         setIsAttemptingToStart(false);
         handleError("Video element not available");
         return false;
       }
       
-      console.log("Video element is available, requesting camera access...");
-      
       let stream: MediaStream;
       
-      // First try environment camera (rear camera on mobile)
       try {
-        console.log("Attempting to access environment camera...");
+        // Try with basic video constraints first
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
+          video: true,
           audio: false
         });
       } catch (err) {
-        // If environment camera fails, try default camera
-        console.log("Environment camera failed, falling back to default camera");
+        // If that fails, try with more specific constraints
         stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
+          video: { facingMode: "environment" },
           audio: false
         });
       }
@@ -60,33 +53,41 @@ export function useMediaStream() {
       // Connect the stream to the video element
       videoElement.srcObject = stream;
       
-      console.log("Camera stream acquired and connected to video element");
-      
-      // Set up event listener for when metadata is loaded
+      // Wait for metadata to load and then play the video
       return new Promise<boolean>((resolve) => {
-        videoElement.onloadedmetadata = async () => {
+        const onMetadataLoaded = async () => {
           try {
             await videoElement.play();
-            console.log("Video started playing successfully");
             setIsStreaming(true);
             setIsAttemptingToStart(false);
             resolve(true);
           } catch (playError) {
-            console.error("Error playing video:", playError);
             handleError("Failed to start video playback", playError);
             resolve(false);
           }
         };
         
-        videoElement.onerror = (event) => {
-          console.error("Video element error:", event);
+        const onError = () => {
           handleError("Video element encountered an error");
           resolve(false);
         };
+        
+        // Add event listeners
+        videoElement.addEventListener('loadedmetadata', onMetadataLoaded, { once: true });
+        videoElement.addEventListener('error', onError, { once: true });
+        
+        // Cleanup function for the promise in case of timeout
+        setTimeout(() => {
+          videoElement.removeEventListener('loadedmetadata', onMetadataLoaded);
+          videoElement.removeEventListener('error', onError);
+          if (!isStreaming) {
+            handleError("Timed out waiting for video to start");
+            resolve(false);
+          }
+        }, 10000); // 10 second timeout
       });
       
     } catch (err) {
-      console.error("Error accessing camera:", err);
       handleError("Could not access camera", err);
       return false;
     }
@@ -112,8 +113,6 @@ export function useMediaStream() {
         errorMessage = "Camera initialization was aborted.";
       }
     }
-    
-    console.error(`Camera error: ${errorMessage}`);
     
     toast({
       title: "Camera error",
