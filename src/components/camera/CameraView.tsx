@@ -32,6 +32,7 @@ const CameraView: React.FC<CameraViewProps> = ({
             videoRef.current.style.display = 'block';
             videoRef.current.style.width = '100%';
             videoRef.current.style.height = '100%';
+            videoRef.current.style.objectFit = 'cover';
             
             // Log the state of the video element
             console.log("Video element state:", {
@@ -78,6 +79,7 @@ const CameraView: React.FC<CameraViewProps> = ({
           display: 'block',
           visibility: 'visible',
           minHeight: '300px',
+          objectFit: 'cover',
         }}
       />
       <div className="absolute bottom-4 left-0 right-0 flex justify-center z-20">
