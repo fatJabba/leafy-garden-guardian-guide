@@ -29,23 +29,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // First set up the auth state listener to avoid race conditions
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
-        // Handle explicit signout event
-        if (event === 'SIGNED_OUT') {
-          setSession(null);
-          setUser(null);
-          setLoading(false);
-          return;
-        }
+        console.log("Auth state changed:", event);
         
-        // For other auth events, update session only when there's a change
-        if (currentSession?.access_token !== session?.access_token) {
+        // For all auth events, update session based on the current session value
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
           setSession(currentSession);
           setUser(currentSession?.user ?? null);
-        }
-        
-        // Make sure loading state is properly updated
-        if (loading && (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED')) {
-          setLoading(false);
+          
+          // If we were in a loading state, exit it
+          if (loading) {
+            setLoading(false);
+          }
         }
       }
     );
@@ -60,7 +54,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [loading, session?.access_token]);
+  }, [loading]);
 
   const signOut = async () => {
     try {
