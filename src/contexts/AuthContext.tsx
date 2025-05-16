@@ -36,23 +36,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       (event, currentSession) => {
         console.log("Auth state changed:", event, currentSession?.user?.email || "no user");
         
+        // Use synchronous state updates to prevent potential deadlocks
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           setSession(currentSession);
           setUser(currentSession?.user ?? null);
-          
-          // Show success toast when user signs in
-          if (event === 'SIGNED_IN') {
-            toast({
-              title: "Signed in successfully",
-              description: "Welcome to PlantPal!"
-            });
-          }
-          
           setLoading(false);
+          
+          // Show success toast when user signs in, but only for actual sign-ins
+          if (event === 'SIGNED_IN') {
+            // Use setTimeout to prevent any possible race conditions
+            setTimeout(() => {
+              toast({
+                title: "Signed in successfully",
+                description: "Welcome to PlantPal!"
+              });
+            }, 0);
+          }
         } else if (event === 'SIGNED_OUT') {
           setSession(null);
           setUser(null);
           setLoading(false);
+        } else if (event === 'USER_UPDATED') {
+          // Handle user updates
+          if (currentSession) {
+            setUser(currentSession.user);
+          }
         } else if (event === 'INITIAL_SESSION') {
           // Only update if we have a session
           if (currentSession) {
@@ -65,13 +73,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     );
 
-    // Then check for existing session
+    // Then check for existing session - make this independent from the listener
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       console.log("Got session:", currentSession ? `yes for ${currentSession.user.email}` : "no");
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
+      
+      if (currentSession) {
+        setSession(currentSession);
+        setUser(currentSession.user);
+      }
       
       // Mark auth as initialized and not loading
+      setAuthInitialized(true);
+      setLoading(false);
+    }).catch(error => {
+      console.error("Error getting session:", error);
       setAuthInitialized(true);
       setLoading(false);
     });

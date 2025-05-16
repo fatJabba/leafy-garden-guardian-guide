@@ -8,11 +8,15 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sprout } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTo = location.state?.from?.pathname || "/";
   
   // Helper function to handle form submission errors
   const handleAuthError = (error: any) => {
@@ -30,8 +34,10 @@ const Auth = () => {
     setLoading(true);
 
     try {
+      console.log("Starting sign up process...");
+      
       // Sign up the user
-      const { error: signUpError } = await supabase.auth.signUp({
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
       });
@@ -39,24 +45,28 @@ const Auth = () => {
       if (signUpError) {
         throw signUpError;
       }
-
-      toast({
-        title: "Account created successfully",
-        description: "Logging you in now."
-      });
       
-      // After successful signup, explicitly sign in
-      const { error: signInError } = await supabase.auth.signInWithPassword({ 
-        email, 
-        password 
-      });
+      console.log("Sign up successful:", signUpData);
       
-      if (signInError) {
-        throw signInError;
+      if (signUpData.user) {
+        toast({
+          title: "Account created successfully",
+          description: "Logging you in now."
+        });
+        
+        // No need to manually sign in after signup - Supabase automatically signs in the user
+        // The AuthContext will handle the session update and redirect
+        
+        // Force navigation to home page
+        navigate("/", { replace: true });
+      } else {
+        // Email confirmation might be required
+        toast({
+          title: "Verification required",
+          description: "Please check your email for verification instructions."
+        });
+        setLoading(false);
       }
-      
-      // The redirect will happen automatically via AuthContext
-      
     } catch (error: any) {
       handleAuthError(error);
     }
@@ -67,7 +77,9 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      console.log("Starting sign in process...");
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -76,7 +88,10 @@ const Auth = () => {
         throw error;
       }
       
-      // The redirect will happen automatically via AuthContext
+      console.log("Sign in successful:", data);
+      
+      // Force navigation after successful login
+      navigate("/", { replace: true });
       
     } catch (error: any) {
       handleAuthError(error);
