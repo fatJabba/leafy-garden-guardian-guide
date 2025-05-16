@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useCamera } from "@/hooks/useCamera";
 import { uploadImageToSupabase } from "@/utils/supabaseStorage";
 import { toast } from "@/hooks/use-toast";
@@ -15,6 +15,7 @@ interface PlantCameraProps {
 const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [cameraStarted, setCameraStarted] = useState(false);
   
   const handleImageCapture = useCallback(async (imageData: string) => {
     setCapturedImage(imageData);
@@ -54,6 +55,22 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
     captureImage
   } = useCamera();
 
+  // Auto-start camera when user grants permission
+  useEffect(() => {
+    if (cameraStarted && !isCameraOn && !isAttemptingToStart && !permissionError) {
+      console.log("Attempting to restart camera...");
+      const timeoutId = setTimeout(() => {
+        startCamera();
+      }, 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [cameraStarted, isCameraOn, isAttemptingToStart, permissionError, startCamera]);
+
+  const handleStartCamera = useCallback(() => {
+    setCameraStarted(true);
+    startCamera();
+  }, [startCamera]);
+
   const handleCaptureClick = useCallback(() => {
     const imageData = captureImage();
     if (imageData) {
@@ -63,6 +80,7 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
 
   const retake = useCallback(() => {
     setCapturedImage(null);
+    setCameraStarted(true);
     startCamera();
   }, [startCamera]);
 
@@ -107,7 +125,7 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
         {!isCameraOn && !capturedImage && !permissionError && (
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <CameraPrompt 
-              onStart={startCamera} 
+              onStart={handleStartCamera} 
               isAttemptingToStart={isAttemptingToStart} 
             />
           </div>
@@ -116,7 +134,7 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
         {permissionError && !capturedImage && (
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <CameraError 
-              onRetry={startCamera} 
+              onRetry={handleStartCamera} 
               onUpload={handleImageUpload} 
               isUploading={isUploading} 
             />

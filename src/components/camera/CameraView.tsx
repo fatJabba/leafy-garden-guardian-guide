@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
 interface CameraViewProps {
@@ -13,6 +13,24 @@ const CameraView: React.FC<CameraViewProps> = ({
   onCapture,
   isUploading = false
 }) => {
+  // Force video element to play when component mounts
+  // This helps on iOS where autoplay might be blocked
+  useEffect(() => {
+    const playVideo = async () => {
+      if (videoRef.current) {
+        try {
+          // Sometimes we need to call play() again even after the initial setup
+          await videoRef.current.play();
+          console.log("Video element is now playing");
+        } catch (error) {
+          console.error("Failed to play video in CameraView:", error);
+        }
+      }
+    };
+    
+    playVideo();
+  }, [videoRef]);
+  
   return (
     <>
       <video 

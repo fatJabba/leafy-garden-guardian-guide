@@ -24,7 +24,7 @@ export function useCamera({ onCapture }: UseCameraOptions = {}) {
       
       const constraints = {
         video: { 
-          facingMode: "environment",
+          facingMode: { ideal: "environment" }, // More flexible constraint
           width: { ideal: 1280 },
           height: { ideal: 720 }
         },
@@ -39,44 +39,63 @@ export function useCamera({ onCapture }: UseCameraOptions = {}) {
         console.log("Setting video stream...");
         videoRef.current.srcObject = stream;
         
-        // Force play when metadata is loaded
+        // Only set camera as on when video can actually play
         videoRef.current.onloadedmetadata = () => {
           if (videoRef.current) {
             console.log("Video metadata loaded, attempting to play...");
-            // Using setTimeout to ensure DOM is ready
-            setTimeout(() => {
-              if (videoRef.current) {
-                videoRef.current.play()
-                  .then(() => {
-                    console.log("Camera started successfully");
-                    setIsCameraOn(true);
-                    setIsAttemptingToStart(false);
-                  })
-                  .catch((error) => {
-                    console.error("Error playing video:", error);
-                    setPermissionError(true);
-                    setIsAttemptingToStart(false);
-                    toast({
-                      title: "Camera error",
-                      description: "There was a problem starting your camera. Please try again.",
-                      variant: "destructive"
-                    });
-                  });
-              }
-            }, 100);
+            
+            // Force playing with a user interaction simulation
+            videoRef.current.play()
+              .then(() => {
+                console.log("Camera started successfully");
+                setIsCameraOn(true);
+                setIsAttemptingToStart(false);
+              })
+              .catch((error) => {
+                console.error("Error playing video:", error);
+                handleCameraError("Failed to start video playback", error);
+              });
           }
         };
+        
+        // Add error handler for the video element
+        videoRef.current.onerror = (event) => {
+          console.error("Video element error:", event);
+          handleCameraError("Video element encountered an error");
+        };
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error accessing camera:", err);
-      setPermissionError(true);
-      setIsAttemptingToStart(false);
-      toast({
-        title: "Camera access denied",
-        description: "Please allow camera access in your browser settings to use this feature.",
-        variant: "destructive"
-      });
+      handleCameraError("Could not access camera", err);
     }
+  };
+  
+  const handleCameraError = (message: string, error?: any) => {
+    setPermissionError(true);
+    setIsAttemptingToStart(false);
+    setIsCameraOn(false);
+    
+    // Show more specific error information
+    let errorMessage = message;
+    if (error) {
+      if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
+        errorMessage = "Camera access was denied. Please allow camera access in your browser settings.";
+      } else if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") {
+        errorMessage = "No camera found on this device.";
+      } else if (error.name === "NotReadableError" || error.name === "TrackStartError") {
+        errorMessage = "Camera is already in use by another application.";
+      } else if (error.name === "OverconstrainedError") {
+        errorMessage = "Camera doesn't support the requested resolution or capabilities.";
+      } else if (error.name === "AbortError") {
+        errorMessage = "Camera initialization was aborted.";
+      }
+    }
+    
+    toast({
+      title: "Camera error",
+      description: errorMessage,
+      variant: "destructive"
+    });
   };
 
   const stopCamera = () => {
