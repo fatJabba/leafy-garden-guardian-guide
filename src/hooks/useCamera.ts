@@ -21,8 +21,10 @@ export function useCamera({ onCapture }: UseCameraOptions = {}) {
   } = useMediaStream();
 
   const startCamera = async () => {
-    await startStream(videoRef.current);
-    setIsCameraOn(true);
+    console.log("Starting camera...");
+    const success = await startStream(videoRef.current);
+    setIsCameraOn(success);
+    return success;
   };
 
   const stopCamera = () => {

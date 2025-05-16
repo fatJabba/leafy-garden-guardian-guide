@@ -40,13 +40,12 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
   }, [setCameraStarted]);
 
   // Custom camera start handler that ensures component is mounted
-  const startCamera = () => {
+  const startCamera = async () => {
     console.log("Starting camera from PlantCamera, mounted:", isMountedRef.current);
-    if (isMountedRef.current && videoRef.current) {
-      console.log("Video element available:", videoRef.current);
-      handleStartCamera();
+    if (isMountedRef.current) {
+      await handleStartCamera();
     } else {
-      console.error("Cannot start camera - component not fully mounted or video element unavailable");
+      console.error("Cannot start camera - component not fully mounted");
     }
   };
 

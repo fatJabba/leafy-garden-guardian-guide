@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { Camera } from "lucide-react";
 
@@ -14,68 +14,6 @@ const CameraView: React.FC<CameraViewProps> = ({
   onCapture,
   isUploading = false
 }) => {
-  // Create a local reference to track if we've attempted to start the video
-  const hasAttemptedPlay = useRef(false);
-  
-  // Force video element to play when component mounts
-  useEffect(() => {
-    console.log("CameraView mounted - checking video element");
-    
-    const playVideo = async () => {
-      if (videoRef.current && !hasAttemptedPlay.current) {
-        try {
-          hasAttemptedPlay.current = true;
-          
-          // Get access to the media stream
-          if (videoRef.current.srcObject) {
-            console.log("Found existing stream in videoRef, attempting to play");
-            
-            // Make sure the video element is explicitly visible
-            if (videoRef.current.style) {
-              videoRef.current.style.visibility = 'visible';
-              videoRef.current.style.display = 'block';
-              videoRef.current.style.width = '100%';
-              videoRef.current.style.height = '100%';
-              videoRef.current.style.objectFit = 'cover';
-              
-              // Log the state of the video element
-              console.log("Video element state:", {
-                width: videoRef.current.offsetWidth,
-                height: videoRef.current.offsetHeight,
-                display: videoRef.current.style.display,
-                visibility: videoRef.current.style.visibility,
-                srcObject: videoRef.current.srcObject ? "exists" : "null"
-              });
-            }
-            
-            // Try to play the video
-            await videoRef.current.play()
-              .then(() => {
-                console.log("Video element is now playing successfully");
-              })
-              .catch(err => {
-                console.error("Error during play():", err);
-              });
-          } else {
-            console.warn("Video element has no srcObject, cannot play. Stream not connected yet.");
-          }
-        } catch (error) {
-          console.error("Failed to play video in CameraView:", error);
-        }
-      } else if (!videoRef.current) {
-        console.error("Video ref is null in CameraView useEffect");
-      }
-    };
-    
-    // Try immediately but also add a delay as fallback
-    playVideo();
-    const timeoutId = setTimeout(playVideo, 500);
-    
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [videoRef]);
-  
   return (
     <div className="relative w-full h-full min-h-[300px] bg-gray-100 overflow-hidden">
       <video 

@@ -8,6 +8,13 @@ export function useMediaStream() {
   const [permissionError, setPermissionError] = useState(false);
   const [isAttemptingToStart, setIsAttemptingToStart] = useState(false);
 
+  // Clean up stream when component unmounts
+  useEffect(() => {
+    return () => {
+      stopStream();
+    };
+  }, []);
+
   const startStream = async (videoElement: HTMLVideoElement | null) => {
     try {
       // Reset error states
@@ -19,94 +26,69 @@ export function useMediaStream() {
       
       console.log("Requesting camera access...");
       
-      // Critical check: Wait for videoElement to be available
+      // Critical check: Ensure videoElement is available
       if (!videoElement) {
         console.error("Video element not available");
         setIsAttemptingToStart(false);
         handleError("Video element not available");
-        return;
+        return false;
       }
       
-      console.log("Video element is available, preparing to access camera...");
+      console.log("Video element is available, requesting camera access...");
       
-      // First try with environment camera (for mobile devices)
+      let stream: MediaStream;
+      
+      // First try environment camera (rear camera on mobile)
       try {
         console.log("Attempting to access environment camera...");
-        const stream = await navigator.mediaDevices.getUserMedia({
+        stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "environment" },
           audio: false
         });
-        
-        streamRef.current = stream;
-        
-        // Connect the stream to the video element
-        videoElement.srcObject = stream;
-        videoElement.style.display = 'block';
-        videoElement.style.visibility = 'visible';
-        
-        console.log("Connected camera stream to video element");
-        
-        // Wait for metadata to be loaded before playing
+      } catch (err) {
+        // If environment camera fails, try default camera
+        console.log("Environment camera failed, falling back to default camera");
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false
+        });
+      }
+      
+      // Store stream in ref
+      streamRef.current = stream;
+      
+      // Connect the stream to the video element
+      videoElement.srcObject = stream;
+      
+      console.log("Camera stream acquired and connected to video element");
+      
+      // Set up event listener for when metadata is loaded
+      return new Promise<boolean>((resolve) => {
         videoElement.onloadedmetadata = async () => {
           try {
             await videoElement.play();
-            console.log("Camera started successfully with environment camera");
+            console.log("Video started playing successfully");
             setIsStreaming(true);
             setIsAttemptingToStart(false);
+            resolve(true);
           } catch (playError) {
             console.error("Error playing video:", playError);
             handleError("Failed to start video playback", playError);
+            resolve(false);
           }
         };
         
-        // Add error handler for the video element
         videoElement.onerror = (event) => {
           console.error("Video element error:", event);
           handleError("Video element encountered an error");
+          resolve(false);
         };
-      } catch (err) {
-        // If environment camera fails, try with user camera or default
-        console.log("Environment camera failed, falling back to default camera");
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: false
-          });
-          
-          streamRef.current = stream;
-          
-          // Double-check video element again
-          if (videoElement) {
-            // Connect the stream to the video element
-            videoElement.srcObject = stream;
-            videoElement.style.display = 'block';
-            videoElement.style.visibility = 'visible';
-            
-            console.log("Connected fallback camera stream to video element");
-            
-            // Wait for metadata to be loaded before playing
-            videoElement.onloadedmetadata = async () => {
-              try {
-                await videoElement.play();
-                console.log("Camera started successfully with fallback camera");
-                setIsStreaming(true);
-                setIsAttemptingToStart(false);
-              } catch (playError) {
-                console.error("Error playing video:", playError);
-                handleError("Failed to start video playback", playError);
-              }
-            };
-          } else {
-            throw new Error("Video element became unavailable during fallback");
-          }
-        } catch (fallbackErr) {
-          console.error("Error accessing any camera:", fallbackErr);
-          handleError("Could not access camera", fallbackErr);
-        }
-      }
+      });
+      
     } catch (err) {
-      console.error("Unexpected error in startStream:", err);
-      handleError("Camera initialization failed", err);
+      console.error("Error accessing camera:", err);
+      handleError("Could not access camera", err);
+      return false;
     }
   };
 
@@ -151,13 +133,6 @@ export function useMediaStream() {
     
     setIsStreaming(false);
   };
-
-  // Clean up stream resources when component unmounts
-  useEffect(() => {
-    return () => {
-      stopStream();
-    };
-  }, []);
 
   return {
     streamRef,
