@@ -16,68 +16,44 @@ export function useCamera({ onCapture }: UseCameraOptions = {}) {
 
   const startCamera = async () => {
     try {
+      // Reset error states
       setPermissionError(false);
       setIsAttemptingToStart(true);
       
-      // Stop any existing stream first to ensure clean restart
+      // Stop any existing stream first
       stopCamera();
       
-      const constraints = {
-        video: { 
-          facingMode: "environment", // Try using a simple string first
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        },
-        audio: false
-      };
-      
       console.log("Requesting camera access...");
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       
-      // Store the stream reference
-      streamRef.current = stream;
+      // Make sure video element is available 
+      if (!videoRef.current) {
+        console.error("Video ref is null");
+        handleCameraError("Video element not available");
+        return;
+      }
       
-      if (videoRef.current) {
-        console.log("Setting video stream...");
+      // First try with environment camera
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" },
+          audio: false
+        });
         
-        // Ensure the video element has proper styling
-        if (videoRef.current.style) {
-          videoRef.current.style.visibility = 'visible';
-          videoRef.current.style.display = 'block';
-        }
-        
-        // Explicitly set srcObject
+        streamRef.current = stream;
         videoRef.current.srcObject = stream;
+        videoRef.current.style.display = 'block';
+        videoRef.current.style.visibility = 'visible';
         
-        // Add event listeners to detect when video starts playing
+        // Wait for metadata to be loaded before playing
         videoRef.current.onloadedmetadata = async () => {
-          if (videoRef.current) {
-            console.log("Video metadata loaded, attempting to play...");
-            
-            try {
-              await videoRef.current.play();
-              console.log("Camera started successfully");
-              setIsCameraOn(true);
-              setIsAttemptingToStart(false);
-            } catch (error) {
-              console.error("Error playing video:", error);
-              handleCameraError("Failed to start video playback", error);
-              
-              // Try again with a timeout, which can help on some browsers
-              setTimeout(async () => {
-                try {
-                  if (videoRef.current) {
-                    await videoRef.current.play();
-                    console.log("Camera started on second attempt");
-                    setIsCameraOn(true);
-                    setIsAttemptingToStart(false);
-                  }
-                } catch (retryError) {
-                  console.error("Error on retry:", retryError);
-                  handleCameraError("Failed to start camera after retry", retryError);
-                }
-              }, 500);
-            }
+          try {
+            await videoRef.current?.play();
+            console.log("Camera started successfully");
+            setIsCameraOn(true);
+            setIsAttemptingToStart(false);
+          } catch (playError) {
+            console.error("Error playing video:", playError);
+            handleCameraError("Failed to start video playback", playError);
           }
         };
         
@@ -86,13 +62,41 @@ export function useCamera({ onCapture }: UseCameraOptions = {}) {
           console.error("Video element error:", event);
           handleCameraError("Video element encountered an error");
         };
-      } else {
-        console.error("Video ref is null");
-        handleCameraError("Video reference not available");
+        
+      } catch (err) {
+        // If environment camera fails, try with user camera or default
+        console.log("Falling back to default camera");
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false
+          });
+          
+          streamRef.current = stream;
+          videoRef.current.srcObject = stream;
+          videoRef.current.style.display = 'block';
+          videoRef.current.style.visibility = 'visible';
+          
+          // Wait for metadata to be loaded before playing
+          videoRef.current.onloadedmetadata = async () => {
+            try {
+              await videoRef.current?.play();
+              console.log("Camera started successfully with fallback");
+              setIsCameraOn(true);
+              setIsAttemptingToStart(false);
+            } catch (playError) {
+              console.error("Error playing video:", playError);
+              handleCameraError("Failed to start video playback", playError);
+            }
+          };
+        } catch (fallbackErr) {
+          console.error("Error accessing any camera:", fallbackErr);
+          handleCameraError("Could not access camera", fallbackErr);
+        }
       }
-    } catch (err: any) {
-      console.error("Error accessing camera:", err);
-      handleCameraError("Could not access camera", err);
+    } catch (err) {
+      console.error("Unexpected error in startCamera:", err);
+      handleCameraError("Camera initialization failed", err);
     }
   };
   
@@ -125,18 +129,18 @@ export function useCamera({ onCapture }: UseCameraOptions = {}) {
   };
 
   const stopCamera = () => {
-    console.log("Stopping camera...");
     if (streamRef.current) {
       const tracks = streamRef.current.getTracks();
       tracks.forEach(track => {
-        console.log(`Stopping track: ${track.kind}`);
         track.stop();
       });
       streamRef.current = null;
     }
     
-    if (videoRef.current && videoRef.current.srcObject) {
+    if (videoRef.current) {
       videoRef.current.srcObject = null;
+      videoRef.current.onloadedmetadata = null;
+      videoRef.current.onerror = null;
     }
     
     setIsCameraOn(false);

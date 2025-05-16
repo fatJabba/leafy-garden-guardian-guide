@@ -19,15 +19,13 @@ const CameraView: React.FC<CameraViewProps> = ({
       if (videoRef.current) {
         try {
           // Add a slight delay before attempting to play
-          // This can help with iOS and some browsers
-          await new Promise(resolve => setTimeout(resolve, 300));
+          await new Promise(resolve => setTimeout(resolve, 500));
           
           // Set the video element to be visible
-          if (videoRef.current.style) {
-            videoRef.current.style.visibility = 'visible';
-            videoRef.current.style.display = 'block';
-          }
+          videoRef.current.style.visibility = 'visible';
+          videoRef.current.style.display = 'block';
           
+          // Attempt to play video
           await videoRef.current.play();
           console.log("Video element is now playing");
         } catch (error) {
@@ -47,7 +45,12 @@ const CameraView: React.FC<CameraViewProps> = ({
         playsInline
         muted
         className="w-full h-full object-cover"
-        style={{ display: 'block' }} // Ensure video is visible
+        style={{ 
+          display: 'block',
+          visibility: 'visible',
+          minHeight: '300px',
+          background: '#f3f4f6'
+        }}
       />
       <div className="absolute bottom-4 left-0 right-0 flex justify-center">
         <Button 

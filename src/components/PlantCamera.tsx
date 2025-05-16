@@ -55,27 +55,8 @@ const PlantCamera: React.FC<PlantCameraProps> = ({ onCapture }) => {
     captureImage
   } = useCamera();
 
-  // Auto-start camera when component mounts if user has already granted permission
-  useEffect(() => {
-    // Automatically start the camera after a short delay to let the component fully mount
-    const timeoutId = setTimeout(() => {
-      handleStartCamera();
-    }, 500);
-    
-    return () => clearTimeout(timeoutId);
-  }, []);
-
-  // Auto-restart camera when needed
-  useEffect(() => {
-    if (cameraStarted && !isCameraOn && !isAttemptingToStart && !permissionError && !capturedImage) {
-      console.log("Attempting to restart camera...");
-      const timeoutId = setTimeout(() => {
-        startCamera();
-      }, 500);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [cameraStarted, isCameraOn, isAttemptingToStart, permissionError, startCamera, capturedImage]);
-
+  // Don't auto-start camera - we'll let the user click a button instead
+  
   const handleStartCamera = useCallback(() => {
     setCameraStarted(true);
     startCamera();
