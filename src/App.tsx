@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,18 +20,26 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
 
   useEffect(() => {
-    // Only redirect when we're sure authentication is complete
+    // Only redirect when we're sure authentication is complete and no user exists
     if (!loading && !user) {
-      navigate("/auth", { replace: true });
+      console.log("Protected route: No user, redirecting to auth");
+      navigate("/auth", { replace: true, state: { from: location } });
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, location]);
 
+  // Show a loading state while checking auth
   if (loading) {
-    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
   }
 
   // If not loading and we have a user, render the children
-  // Otherwise, render nothing (the useEffect will handle navigation)
   return user ? <>{children}</> : null;
 };
 
@@ -38,21 +47,28 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const GuestRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
-    // Only redirect when we're sure authentication is complete
+    // Only redirect when we're sure authentication is complete and user exists
     if (!loading && user) {
+      console.log("Guest route: User exists, redirecting to home");
       navigate("/", { replace: true });
     }
   }, [user, loading, navigate]);
 
+  // Show a loading state while checking auth
   if (loading) {
-    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
   }
 
   // If not loading and we don't have a user, render the children
-  // Otherwise, render nothing (the useEffect will handle navigation)
   return !user ? <>{children}</> : null;
 };
 

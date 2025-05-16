@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,40 +23,57 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authInitialized, setAuthInitialized] = useState(false);
 
   useEffect(() => {
-    // First set up the auth state listener to avoid race conditions
+    if (authInitialized) return;
+    
+    console.log("Initializing auth...");
+    
+    // First set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         console.log("Auth state changed:", event);
         
-        // For all auth events, update session based on the current session value
-        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           setSession(currentSession);
           setUser(currentSession?.user ?? null);
-          
-          // If we were in a loading state, exit it
-          if (loading) {
-            setLoading(false);
+          setLoading(false);
+        } else if (event === 'SIGNED_OUT') {
+          setSession(null);
+          setUser(null);
+          setLoading(false);
+        } else if (event === 'INITIAL_SESSION') {
+          // Only update if we have a session
+          if (currentSession) {
+            setSession(currentSession);
+            setUser(currentSession.user);
           }
+          // Always mark loading as complete after INITIAL_SESSION
+          setLoading(false);
         }
       }
     );
 
     // Then check for existing session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      console.log("Got session:", currentSession ? "yes" : "no");
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
+      
+      // Mark auth as initialized and not loading
+      setAuthInitialized(true);
       setLoading(false);
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [loading]);
+  }, [authInitialized]);
 
   const signOut = async () => {
     try {
+      setLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
@@ -70,6 +86,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         description: error.message,
         variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
   };
 
