@@ -10,6 +10,7 @@ import PlantDetails from "./pages/PlantDetails";
 import AddPlant from "./pages/AddPlant";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
+import Profile from "./pages/Profile";
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -49,6 +50,7 @@ const AppRoutes = () => (
     <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
     <Route path="/plant/:id" element={<ProtectedRoute><PlantDetails /></ProtectedRoute>} />
     <Route path="/add-plant" element={<ProtectedRoute><AddPlant /></ProtectedRoute>} />
+    <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );

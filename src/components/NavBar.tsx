@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Sprout, Plus, Menu, LogOut } from "lucide-react";
+import { Sprout, Plus, LogOut, User } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -40,6 +40,12 @@ const NavBar = () => {
               </Avatar>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <Link to="/profile">
+                <DropdownMenuItem className="cursor-pointer">
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </DropdownMenuItem>
+              </Link>
               <DropdownMenuItem onClick={signOut} className="cursor-pointer">
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Sign Out</span>
