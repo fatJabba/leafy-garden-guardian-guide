@@ -39,6 +39,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           setSession(currentSession);
           setUser(currentSession?.user ?? null);
+          
+          // Show success toast when user signs in
+          if (event === 'SIGNED_IN') {
+            toast({
+              title: "Signed in successfully",
+              description: "Welcome to PlantPal!"
+            });
+          }
+          
           setLoading(false);
         } else if (event === 'SIGNED_OUT') {
           setSession(null);

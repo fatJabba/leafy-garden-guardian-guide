@@ -51,10 +51,12 @@ const GuestRoute = ({ children }: { children: React.ReactNode }) => {
   const from = location.state?.from?.pathname || "/";
 
   useEffect(() => {
-    // Only redirect when we're sure authentication is complete and user exists
-    if (!loading && user) {
-      console.log("Guest route: User exists, redirecting to home or previous location");
-      navigate(from, { replace: true });
+    if (!loading) {
+      // If user is logged in, redirect to home or previous location
+      if (user) {
+        console.log("Guest route: User exists, redirecting to home");
+        navigate("/", { replace: true });
+      }
     }
   }, [user, loading, navigate, from]);
 

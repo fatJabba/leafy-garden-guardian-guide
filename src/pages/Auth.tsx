@@ -1,6 +1,5 @@
 
 import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,8 +10,6 @@ import { Sprout } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const Auth = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -33,28 +30,33 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      // Sign up the user
+      const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
       });
 
-      if (error) {
-        throw error;
+      if (signUpError) {
+        throw signUpError;
       }
 
       toast({
         title: "Account created successfully",
-        description: "Please check your email to confirm your account."
+        description: "Logging you in now."
       });
       
-      // For testing purposes, we'll sign in immediately
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      // After successful signup, explicitly sign in
+      const { error: signInError } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password 
+      });
       
       if (signInError) {
         throw signInError;
       }
       
-      // The redirect will be handled by the auth state change in AuthContext
+      // The redirect will happen automatically via AuthContext
+      
     } catch (error: any) {
       handleAuthError(error);
     }
@@ -74,7 +76,8 @@ const Auth = () => {
         throw error;
       }
       
-      // The redirect will be handled by the auth state change in AuthContext
+      // The redirect will happen automatically via AuthContext
+      
     } catch (error: any) {
       handleAuthError(error);
     }
@@ -112,6 +115,7 @@ const Auth = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    disabled={loading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -122,6 +126,7 @@ const Auth = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    disabled={loading}
                   />
                 </div>
               </CardContent>
@@ -148,6 +153,7 @@ const Auth = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    disabled={loading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -159,6 +165,7 @@ const Auth = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={6}
+                    disabled={loading}
                   />
                   <p className="text-xs text-muted-foreground">
                     Password must be at least 6 characters long
