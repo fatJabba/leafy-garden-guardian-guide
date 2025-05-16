@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,12 +31,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     console.log("Initializing auth...");
     
-    // First set up the auth state listener
+    // First check for existing session - do this before setting up listener
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      console.log("Got session:", currentSession ? "yes" : "no");
+      
+      if (currentSession) {
+        setSession(currentSession);
+        setUser(currentSession.user);
+      }
+      
+      // Mark auth as initialized
+      setAuthInitialized(true);
+      setLoading(false);
+    }).catch(error => {
+      console.error("Error getting session:", error);
+      setAuthInitialized(true);
+      setLoading(false);
+    });
+    
+    // Then set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         console.log("Auth state changed:", event);
         
-        // Use synchronous state updates to prevent potential deadlocks
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           setSession(currentSession);
           setUser(currentSession?.user ?? null);
@@ -49,9 +67,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             });
           }
         } else if (event === 'SIGNED_OUT') {
+          // Important: clear state in correct order
           setSession(null);
           setUser(null);
           setLoading(false);
+          
+          toast({
+            title: "Signed out successfully",
+          });
         } else if (event === 'USER_UPDATED') {
           // Handle user updates
           if (currentSession) {
@@ -69,24 +92,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     );
 
-    // Then check for existing session - make this independent from the listener
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      console.log("Got session:", currentSession ? "yes" : "no");
-      
-      if (currentSession) {
-        setSession(currentSession);
-        setUser(currentSession.user);
-      }
-      
-      // Mark auth as initialized and not loading
-      setAuthInitialized(true);
-      setLoading(false);
-    }).catch(error => {
-      console.error("Error getting session:", error);
-      setAuthInitialized(true);
-      setLoading(false);
-    });
-
     return () => {
       subscription.unsubscribe();
     };
@@ -96,13 +101,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log("Signing out...");
       setLoading(true);
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
       
-      // Explicitly clear state after signout
+      // First clear session and user state before actual signout
+      // This prevents the "Auth session missing" error when the signout triggers the auth state change
+      const tempSession = session;
       setSession(null);
       setUser(null);
       
+      // Then perform the actual signout
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        // Restore the session if signout fails
+        setSession(tempSession);
+        setUser(tempSession?.user ?? null);
+        throw error;
+      }
+      
+      // Success has already cleared the state
       toast({
         title: "Signed out successfully",
       });

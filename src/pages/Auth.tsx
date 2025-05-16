@@ -9,6 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sprout } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -16,7 +18,15 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const redirectTo = location.state?.from?.pathname || "/";
+  
+  // If user is already authenticated, redirect to home
+  useEffect(() => {
+    if (user) {
+      navigate("/", { replace: true });
+    }
+  }, [user, navigate]);
   
   // Helper function to handle form submission errors
   const handleAuthError = (error: any) => {
@@ -53,9 +63,6 @@ const Auth = () => {
           title: "Account created successfully",
           description: "Logging you in now."
         });
-        
-        // No need to manually sign in after signup - Supabase automatically signs in the user
-        // The AuthContext will handle the session update and redirect
         
         // Force navigation to home page
         navigate("/", { replace: true });
