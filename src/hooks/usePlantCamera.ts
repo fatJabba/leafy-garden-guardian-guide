@@ -8,7 +8,6 @@ export function usePlantCamera(onCapture: (imageData: string, imagePath?: string
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [cameraStarted, setCameraStarted] = useState(false);
-  const videoMountedRef = useRef(false);
   
   const { 
     videoRef, 
@@ -49,23 +48,23 @@ export function usePlantCamera(onCapture: (imageData: string, imagePath?: string
   }, [onCapture]);
   
   const handleStartCamera = useCallback(() => {
-    console.log("Starting camera...");
+    console.log("Starting camera from usePlantCamera hook...");
     setCameraStarted(true);
     
     // Use a small delay to ensure component has fully rendered
     setTimeout(() => {
       if (videoRef.current) {
-        console.log("Video ref is available, starting camera");
+        console.log("Video ref is available in usePlantCamera, starting camera");
         startCamera();
       } else {
-        console.error("Video ref is not available even after delay");
+        console.error("Video ref is not available even after delay in usePlantCamera");
         toast({
           title: "Camera error",
           description: "Could not initialize camera. Please try again.",
           variant: "destructive"
         });
       }
-    }, 100);
+    }, 300); // Increased delay to ensure DOM is ready
   }, [startCamera, videoRef]);
 
   const handleCaptureClick = useCallback(() => {
@@ -91,7 +90,7 @@ export function usePlantCamera(onCapture: (imageData: string, imagePath?: string
           variant: "destructive"
         });
       }
-    }, 100);
+    }, 300); // Increased delay to ensure DOM is ready
   }, [startCamera, videoRef]);
 
   const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {

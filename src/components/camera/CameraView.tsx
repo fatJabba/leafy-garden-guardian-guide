@@ -26,30 +26,38 @@ const CameraView: React.FC<CameraViewProps> = ({
         try {
           hasAttemptedPlay.current = true;
           
-          // Make sure the video element is explicitly visible
-          if (videoRef.current.style) {
-            videoRef.current.style.visibility = 'visible';
-            videoRef.current.style.display = 'block';
-            videoRef.current.style.width = '100%';
-            videoRef.current.style.height = '100%';
-            videoRef.current.style.objectFit = 'cover';
-            
-            // Log the state of the video element
-            console.log("Video element state:", {
-              width: videoRef.current.offsetWidth,
-              height: videoRef.current.offsetHeight,
-              display: videoRef.current.style.display,
-              visibility: videoRef.current.style.visibility,
-              srcObject: videoRef.current.srcObject ? "exists" : "null"
-            });
-          }
-          
-          // Only try to play if we have a srcObject
+          // Get access to the media stream
           if (videoRef.current.srcObject) {
-            await videoRef.current.play();
-            console.log("Video element is now playing");
+            console.log("Found existing stream in videoRef, attempting to play");
+            
+            // Make sure the video element is explicitly visible
+            if (videoRef.current.style) {
+              videoRef.current.style.visibility = 'visible';
+              videoRef.current.style.display = 'block';
+              videoRef.current.style.width = '100%';
+              videoRef.current.style.height = '100%';
+              videoRef.current.style.objectFit = 'cover';
+              
+              // Log the state of the video element
+              console.log("Video element state:", {
+                width: videoRef.current.offsetWidth,
+                height: videoRef.current.offsetHeight,
+                display: videoRef.current.style.display,
+                visibility: videoRef.current.style.visibility,
+                srcObject: videoRef.current.srcObject ? "exists" : "null"
+              });
+            }
+            
+            // Try to play the video
+            await videoRef.current.play()
+              .then(() => {
+                console.log("Video element is now playing successfully");
+              })
+              .catch(err => {
+                console.error("Error during play():", err);
+              });
           } else {
-            console.warn("Video element has no srcObject, cannot play");
+            console.warn("Video element has no srcObject, cannot play. Stream not connected yet.");
           }
         } catch (error) {
           console.error("Failed to play video in CameraView:", error);
@@ -59,7 +67,8 @@ const CameraView: React.FC<CameraViewProps> = ({
       }
     };
     
-    // Add a delay to ensure the video element is in the DOM
+    // Try immediately but also add a delay as fallback
+    playVideo();
     const timeoutId = setTimeout(playVideo, 500);
     
     return () => {

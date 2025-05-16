@@ -27,7 +27,9 @@ export function useMediaStream() {
         return;
       }
       
-      // First try with environment camera
+      console.log("Video element is available, preparing to access camera...");
+      
+      // First try with environment camera (for mobile devices)
       try {
         console.log("Attempting to access environment camera...");
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -48,7 +50,7 @@ export function useMediaStream() {
         videoElement.onloadedmetadata = async () => {
           try {
             await videoElement.play();
-            console.log("Camera started successfully");
+            console.log("Camera started successfully with environment camera");
             setIsStreaming(true);
             setIsAttemptingToStart(false);
           } catch (playError) {
@@ -64,7 +66,7 @@ export function useMediaStream() {
         };
       } catch (err) {
         // If environment camera fails, try with user camera or default
-        console.log("Falling back to default camera");
+        console.log("Environment camera failed, falling back to default camera");
         try {
           const stream = await navigator.mediaDevices.getUserMedia({
             video: true,
@@ -86,7 +88,7 @@ export function useMediaStream() {
             videoElement.onloadedmetadata = async () => {
               try {
                 await videoElement.play();
-                console.log("Camera started successfully with fallback");
+                console.log("Camera started successfully with fallback camera");
                 setIsStreaming(true);
                 setIsAttemptingToStart(false);
               } catch (playError) {
@@ -128,6 +130,8 @@ export function useMediaStream() {
         errorMessage = "Camera initialization was aborted.";
       }
     }
+    
+    console.error(`Camera error: ${errorMessage}`);
     
     toast({
       title: "Camera error",

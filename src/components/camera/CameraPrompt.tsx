@@ -9,12 +9,17 @@ interface CameraPromptProps {
 }
 
 const CameraPrompt: React.FC<CameraPromptProps> = ({ onStart, isAttemptingToStart }) => {
+  const handleStartClick = () => {
+    console.log("Camera start button clicked");
+    onStart();
+  };
+
   return (
     <>
       <Camera className="w-12 h-12 text-gray-400 mb-4" />
       <Button 
         type="button" 
-        onClick={onStart}
+        onClick={handleStartClick}
         className="bg-garden-500 hover:bg-garden-600"
         disabled={isAttemptingToStart}
       >
