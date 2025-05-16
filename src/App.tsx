@@ -42,7 +42,15 @@ const GuestRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-const queryClient = new QueryClient();
+// Create QueryClient outside of component rendering to prevent recreation on renders
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false, // Prevent refetches when window focus changes
+      retry: false, // Don't retry failed queries
+    },
+  },
+});
 
 const AppRoutes = () => (
   <Routes>
