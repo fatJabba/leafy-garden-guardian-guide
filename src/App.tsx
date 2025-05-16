@@ -1,9 +1,8 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import PlantDetails from "./pages/PlantDetails";
@@ -11,35 +10,50 @@ import AddPlant from "./pages/AddPlant";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
+import { useEffect } from "react";
 
-// Protected route component
+// Protected route component with more robust session checking
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Only redirect when we're sure authentication is complete
+    if (!loading && !user) {
+      navigate("/auth", { replace: true });
+    }
+  }, [user, loading, navigate]);
 
   if (loading) {
     return <div className="flex h-screen items-center justify-center">Loading...</div>;
   }
 
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  return <>{children}</>;
+  // If not loading and we have a user, render the children
+  // Otherwise, render nothing (the useEffect will handle navigation)
+  return user ? <>{children}</> : null;
 };
 
 // Check if user is already logged in, redirect to home if they are
 const GuestRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Only redirect when we're sure authentication is complete
+    if (!loading && user) {
+      navigate("/", { replace: true });
+    }
+  }, [user, loading, navigate]);
 
   if (loading) {
     return <div className="flex h-screen items-center justify-center">Loading...</div>;
   }
 
-  if (user) {
-    return <Navigate to="/" replace />;
-  }
-
-  return <>{children}</>;
+  // If not loading and we don't have a user, render the children
+  // Otherwise, render nothing (the useEffect will handle navigation)
+  return !user ? <>{children}</> : null;
 };
 
 // Create QueryClient outside of component rendering to prevent recreation on renders
