@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,9 +12,21 @@ import { toast } from "@/hooks/use-toast";
 
 const Auth = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  // Helper function to handle form submission errors
+  const handleAuthError = (error: any) => {
+    console.error("Auth error:", error);
+    toast({
+      title: "Authentication Error",
+      description: error.message || "An error occurred during authentication",
+      variant: "destructive"
+    });
+    setLoading(false);
+  };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,16 +48,15 @@ const Auth = () => {
       });
       
       // For testing purposes, we'll sign in immediately
-      await supabase.auth.signInWithPassword({ email, password });
-      navigate("/");
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      
+      if (signInError) {
+        throw signInError;
+      }
+      
+      // The redirect will be handled by the auth state change in AuthContext
     } catch (error: any) {
-      toast({
-        title: "Error creating account",
-        description: error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
+      handleAuthError(error);
     }
   };
 
@@ -62,16 +73,10 @@ const Auth = () => {
       if (error) {
         throw error;
       }
-
-      navigate("/");
+      
+      // The redirect will be handled by the auth state change in AuthContext
     } catch (error: any) {
-      toast({
-        title: "Error signing in",
-        description: error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
+      handleAuthError(error);
     }
   };
 

@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,7 +34,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // First set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
-        console.log("Auth state changed:", event);
+        console.log("Auth state changed:", event, currentSession?.user?.email || "no user");
         
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           setSession(currentSession);
@@ -57,7 +58,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Then check for existing session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      console.log("Got session:", currentSession ? "yes" : "no");
+      console.log("Got session:", currentSession ? `yes for ${currentSession.user.email}` : "no");
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       
@@ -73,6 +74,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     try {
+      console.log("Signing out...");
       setLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
@@ -80,7 +82,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Explicitly clear state after signout
       setSession(null);
       setUser(null);
+      
+      toast({
+        title: "Signed out successfully",
+      });
     } catch (error: any) {
+      console.error("Error signing out:", error);
       toast({
         title: "Error signing out",
         description: error.message,

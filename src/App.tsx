@@ -22,7 +22,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     // Only redirect when we're sure authentication is complete and no user exists
     if (!loading && !user) {
-      console.log("Protected route: No user, redirecting to auth");
+      console.log("Protected route: No user, redirecting to auth", location.pathname);
       navigate("/auth", { replace: true, state: { from: location } });
     }
   }, [user, loading, navigate, location]);
@@ -47,14 +47,16 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const GuestRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from?.pathname || "/";
 
   useEffect(() => {
     // Only redirect when we're sure authentication is complete and user exists
     if (!loading && user) {
-      console.log("Guest route: User exists, redirecting to home");
-      navigate("/", { replace: true });
+      console.log("Guest route: User exists, redirecting to home or previous location");
+      navigate(from, { replace: true });
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, from]);
 
   // Show a loading state while checking auth
   if (loading) {
